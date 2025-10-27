@@ -1,18 +1,13 @@
 using UnityEngine;
-/*** A script on a child of player character
-* It should have a small BoxCollider2D set to trigger to just touch the ground
-***/
+
 public class GroundChecker : MonoBehaviour
 {
     public bool isGrounded;
-    public BoxCollider2D collider;
+    public BoxCollider2D boxCollider;
+
     public void Start()
     {
-        collider = GetComponent<BoxCollider2D>();
-    }
-    void Update()
-    {
-        //Empty
+        boxCollider = GetComponent<BoxCollider2D>();
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
@@ -24,6 +19,4 @@ public class GroundChecker : MonoBehaviour
     {
         isGrounded = false;
     }
-
-
 }

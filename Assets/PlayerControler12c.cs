@@ -1,72 +1,59 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 
-public class PlayerController : MonoBehaviour
+public class PlayerControler12c : MonoBehaviour
 {
-    public float moveSpeed = 5;
-    public float runSpeed = 7;
+    [Header("Move")]
+    public float moveSpeed = 6;
+    public float runSpeed = 10;
+
+    [Header("Jump (Force)")]
     public float jumpForce = 300;
 
+    [Header("Refs")]
     public Rigidbody2D rb;
     public GroundChecker groundCheck;
-    public PlayerHealth health;
-    public Animator anim;
     public SpriteRenderer spriteRenderer;
 
-    void Start()
+    // Internal state (читання інпуту в Update, застосування у FixedUpdate)
+    private float _moveInput;
+    private bool _jumpQueued;
+
+    void Awake()
     {
-        rb = GetComponent<Rigidbody2D>();
-        health = GetComponent<PlayerHealth>();
-        anim = GetComponent<Animator>();
-        spriteRenderer = GetComponent<SpriteRenderer>();
+        if (!rb) rb = GetComponent<Rigidbody2D>();
+        if (!spriteRenderer) spriteRenderer = GetComponent<SpriteRenderer>();
     }
 
     void Update()
     {
-        if (health.isDead) return;
+        // 1) Вхід користувача
+        _moveInput = Input.GetAxisRaw("Horizontal"); // Raw – більш “чіткий” контроль
 
-        float moveInput = Input.GetAxis("Horizontal");
+        // 2) Фліп спрайта
+        if (_moveInput > 0) spriteRenderer.flipX = false;
+        else if (_moveInput < 0) spriteRenderer.flipX = true;
 
-        // Flip
-        if (moveInput > 0)
-            spriteRenderer.flipX = false;
-        else if (moveInput < 0)
-            spriteRenderer.flipX = true;
+        // 3) Черга стрибка (натискання ловимо тут, виконуємо у FixedUpdate)
+        if (Input.GetKeyDown(KeyCode.Space))
+            _jumpQueued = true;
+    }
 
-        // Speed and movement
+    void FixedUpdate()
+    {
+        // 1) Рух (фізика)
         float currentSpeed = Input.GetKey(KeyCode.LeftShift) ? runSpeed : moveSpeed;
-        rb.velocity = new Vector2(moveInput * currentSpeed, rb.velocity.y);
+        rb.velocity = new Vector2(_moveInput * currentSpeed, rb.velocity.y);
 
-        // Run animation
-        bool isRunning = moveInput != 0;
-        anim.SetBool("IsRun", isRunning);
-
-        // Jump
-        if (Input.GetKeyDown(KeyCode.Space) && groundCheck.isGrounded)
+        // 2) Стрибок (фізика)
+        if (_jumpQueued && groundCheck != null && groundCheck.isGrounded)
         {
-            rb.AddForce(Vector2.up * jumpForce);
-
-            // Увага: Встановлюємо IsJump на 1 кадр
-            anim.SetBool("IsJump", true);
-            anim.SetBool("IsFall", false);
-        }
-        else
-        {
-            // Якщо не натиснуто пробіл — скидаємо IsJump (щоб він не застряг)
-            anim.SetBool("IsJump", false);
+            rb.AddForce(Vector2.up * jumpForce); // ForceMode2D.Force за замовчуванням
         }
 
-        // Fall
-        if (rb.velocity.y < -0.1f && !groundCheck.isGrounded)
-        {
-            anim.SetBool("IsFall", true);
-        }
-
-        // Grounded reset
-        if (groundCheck.isGrounded)
-        {
-            anim.SetBool("IsFall", false);
-        }
+        // Стрибок опрацьовано — скидаємо прапорець
+        _jumpQueued = false;
     }
 }
