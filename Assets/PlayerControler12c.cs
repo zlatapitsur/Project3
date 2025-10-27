@@ -1,51 +1,72 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
 
-public class PlayerControler12c : MonoBehaviour
+public class PlayerController : MonoBehaviour
 {
-    public float moveSpeed = 1000;
-    public float moveInput = 0;
+    public float moveSpeed = 5;
+    public float runSpeed = 7;
     public float jumpForce = 300;
-    public bool isJump = false;
 
     public Rigidbody2D rb;
-    public SpriteRenderer sprite;
-    public GroundChecker groundChecker;
+    public GroundChecker groundCheck;
+    public PlayerHealth health;
+    public Animator anim;
+    public SpriteRenderer spriteRenderer;
 
-    // Start is called before the first frame update
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-        sprite = GetComponent<SpriteRenderer>();
+        health = GetComponent<PlayerHealth>();
+        anim = GetComponent<Animator>();
+        spriteRenderer = GetComponent<SpriteRenderer>();
     }
 
-    // Update is called once per frame
     void Update()
     {
-        moveInput = Input.GetAxis("Horizontal");
-        rb.velocity = new Vector2(moveInput *
-            moveSpeed *
-            Time.deltaTime,
-            rb.velocity.y);
+        if (health.isDead) return;
 
-        if (Input.GetKeyDown(KeyCode.Space) && groundChecker.isGrounded)
+        float moveInput = Input.GetAxis("Horizontal");
+
+        // Flip
+        if (moveInput > 0)
+            spriteRenderer.flipX = false;
+        else if (moveInput < 0)
+            spriteRenderer.flipX = true;
+
+        // Speed and movement
+        float currentSpeed = Input.GetKey(KeyCode.LeftShift) ? runSpeed : moveSpeed;
+        rb.velocity = new Vector2(moveInput * currentSpeed, rb.velocity.y);
+
+        // Run animation
+        bool isRunning = moveInput != 0;
+        anim.SetBool("IsRun", isRunning);
+
+        // Jump
+        if (Input.GetKeyDown(KeyCode.Space) && groundCheck.isGrounded)
         {
-            isJump = true; 
+            rb.AddForce(Vector2.up * jumpForce);
+
+            // Увага: Встановлюємо IsJump на 1 кадр
+            anim.SetBool("IsJump", true);
+            anim.SetBool("IsFall", false);
         }
-    }
-    private void FixedUpdate()
-    {
-        rb.velocity = new Vector2(moveInput *
-           moveSpeed *
-           Time.fixedDeltaTime,
-           rb.velocity.y);
-        if (isJump && groundChecker.isGrounded)
-        { 
-        rb.AddForce(Vector2.up * jumpForce);
-        isJump = false;
+        else
+        {
+            // Якщо не натиснуто пробіл — скидаємо IsJump (щоб він не застряг)
+            anim.SetBool("IsJump", false);
+        }
+
+        // Fall
+        if (rb.velocity.y < -0.1f && !groundCheck.isGrounded)
+        {
+            anim.SetBool("IsFall", true);
+        }
+
+        // Grounded reset
+        if (groundCheck.isGrounded)
+        {
+            anim.SetBool("IsFall", false);
         }
     }
 }
-
